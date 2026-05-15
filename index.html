@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Definable.ai — Campaign Dashboard</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --border: #1e1e2e;
+      --accent: #7c6bff;
+      --accent2: #ff6b9d;
+      --accent3: #6bffb8;
+      --accent4: #ffb86b;
+      --text: #e2e2f0;
+      --muted: #6b6b8a;
+      --green: #6bffb8;
+      --red: #ff6b6b;
+      --yellow: #ffb86b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+    /* ---- Header ---- */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-brand { display: flex; align-items: center; gap: 10px; }
+    .logo { width: 28px; height: 28px; background: var(--accent); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-weight: 700;
+      font-size: 13px; color: white; }
+    .header h1 { font-size: 15px; font-weight: 600; color: var(--text); }
+    .header-meta { display: flex; align-items: center; gap: 16px; }
+    .refresh-btn {
+      padding: 7px 14px; background: var(--accent); border: none; border-radius: 8px;
+      color: white; font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: opacity .15s;
+    }
+    .refresh-btn:hover { opacity: .85; }
+    .last-updated { font-size: 11px; color: var(--muted); }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+      display: inline-block; margin-right: 5px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; } 50% { opacity:.4; }
+    }
+    /* ---- Layout ---- */
+    .container { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+    .section-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); margin-bottom: 14px;
+    }
+    /* ---- Funnel cards ---- */
+    .funnel-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    @media(max-width:1024px) { .funnel-grid { grid-template-columns: repeat(3,1fr); } }
+    @media(max-width:600px)  { .funnel-grid { grid-template-columns: 1fr 1fr; } }
+    .funnel-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .funnel-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 14px 14px 0 0;
+    }
+    .funnel-card.m0::before { background: var(--muted); }
+    .funnel-card.m1::before { background: var(--accent); }
+    .funnel-card.m2::before { background: var(--accent2); }
+    .funnel-card.m3::before { background: var(--accent3); }
+    .funnel-card.m4::before { background: var(--accent4); }
+    .card-label { font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted); margin-bottom: 10px; }
+    .card-value { font-size: 30px; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+    .card-meta { font-size: 11px; color: var(--muted); }
+    .card-conv {
+      display: inline-block; margin-top: 8px;
+      font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 99px;
+      background: rgba(107,255,184,.12); color: var(--green);
+    }
+    .sparkline { margin-top: 12px; }
+    .sparkline svg { width: 100%; height: 36px; }
+    /* ---- 2-col grid ---- */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 28px; }
+    @media(max-width:768px) { .two-col { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .card-title { font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+    /* ---- Source bars ---- */
+    .source-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .source-label { width: 130px; font-size: 12px; color: var(--text); white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; }
+    .source-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .source-bar { height: 100%; border-radius: 3px; transition: width .6s ease; }
+    .source-count { font-size: 11px; color: var(--muted); width: 40px; text-align: right; }
+    /* ---- Table ---- */
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted); padding: 0 0 10px;
+      text-align: left; border-bottom: 1px solid var(--border); }
+    td { padding: 9px 0; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,.03); }
+    td:not(:first-child) { text-align: right; color: var(--muted); }
+    tr:last-child td { border-bottom: none; }
+    /* ---- Trend chart ---- */
+    .trend-chart { position: relative; height: 140px; }
+    .trend-chart canvas { width: 100% !important; height: 140px !important; }
+    /* ---- Loading skeleton ---- */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, var(--surface) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+      height: 30px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    /* ---- Alerts ---- */
+    .alert {
+      padding: 10px 14px; border-radius: 10px; margin-bottom: 14px;
+      font-size: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .alert.warn { background: rgba(255,184,107,.1); border: 1px solid rgba(255,184,107,.25); color: var(--yellow); }
+    .alert.error { background: rgba(255,107,107,.1); border: 1px solid rgba(255,107,107,.25); color: var(--red); }
+    .alert.info  { background: rgba(124,107,255,.1); border: 1px solid rgba(124,107,255,.25); color: var(--accent); }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-brand">
+    <div class="logo">D</div>
+    <h1>Definable.ai &mdash; Campaign Dashboard</h1>
+  </div>
+  <div class="header-meta">
+    <span class="last-updated"><span class="status-dot"></span><span id="lastUpdated">Loading&hellip;</span></span>
+    <button class="refresh-btn" onclick="loadAll()">&#8635; Refresh</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- SETUP ALERT (shown when env vars missing) -->
+  <div class="alert warn hidden" id="setupAlert">
+    &#9888; Dashboard is using <strong>demo data</strong>. Set <code>GA4_PROPERTY_ID</code>, <code>GSC_SITE_URL</code>, and <code>GOOGLE_SA_JSON</code> in Netlify environment variables to connect live data.
+  </div>
+
+  <!-- FUNNEL -->
+  <div class="section-title">&#9654; Campaign Funnel &mdash; Last 30 Days</div>
+  <div class="funnel-grid">
+    <div class="funnel-card m0">
+      <div class="card-label">Ad Clicks (UTM)</div>
+      <div class="card-value" id="v-utm">—</div>
+      <div class="card-meta">utm_captured events</div>
+      <div class="sparkline" id="sp-utm"></div>
+    </div>
+    <div class="funnel-card m1">
+      <div class="card-label">Milestone 1 &mdash; Signup Click</div>
+      <div class="card-value" id="v-signup-click">—</div>
+      <div class="card-meta">signup_click events</div>
+      <div class="card-conv" id="conv-1">— conv</div>
+      <div class="sparkline" id="sp-signup-click"></div>
+    </div>
+    <div class="funnel-card m2">
+      <div class="card-label">Milestone 2 &mdash; Signed Up</div>
+      <div class="card-value" id="v-signup-complete">—</div>
+      <div class="card-meta">signup_complete events</div>
+      <div class="card-conv" id="conv-2">— conv</div>
+      <div class="sparkline" id="sp-signup-complete"></div>
+    </div>
+    <div class="funnel-card m3">
+      <div class="card-label">Milestone 3 &mdash; First Chat</div>
+      <div class="card-value" id="v-first-chat">—</div>
+      <div class="card-meta">first_chat_sent events</div>
+      <div class="card-conv" id="conv-3">— conv</div>
+      <div class="sparkline" id="sp-first-chat"></div>
+    </div>
+    <div class="funnel-card m4">
+      <div class="card-label">Milestone 4 &mdash; Subscribed</div>
+      <div class="card-value" id="v-subscription">—</div>
+      <div class="card-meta">subscription_started events</div>
+      <div class="card-conv" id="conv-4">— conv</div>
+      <div class="sparkline" id="sp-subscription"></div>
+    </div>
+  </div>
+
+  <!-- TRAFFIC + SEARCH -->
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Traffic by Source</div>
+      <div id="trafficBars"><div class="skeleton"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Search Console &mdash; 28 Days</div>
+      <div id="gscOverview"><div class="skeleton"></div></div>
+    </div>
+  </div>
+
+  <!-- TOP PAGES + QUERIES -->
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Top Pages by Views</div>
+      <div id="topPages"><div class="skeleton"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top Search Queries</div>
+      <div id="topQueries"><div class="skeleton"></div></div>
+    </div>
+  </div>
+
+  <!-- PAID CAMPAIGN UTM BREAKDOWN -->
+  <div class="card" style="margin-bottom:28px">
+    <div class="card-title">Paid Campaign UTM Breakdown &mdash; Instagram vs LinkedIn</div>
+    <div id="utmBreakdown"><div class="skeleton"></div></div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const API = {
+  ga4: (report) => `/api/ga4?report=${report}`,
+  gsc: (report) => `/api/gsc?report=${report}`,
+};
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+// ============================================================
+// DEMO DATA FALLBACK (shown when API not connected)
+// ============================================================
+const DEMO = {
+  funnel: {
+    utm_captured: 915, signup_click: 247, signup_complete: 82,
+    first_chat_sent: 61, subscription_started: 14,
+    sparklines: {
+      utm_captured:       [28,31,27,34,39,44,41,38,43,47,52,48,51,55,60,58,63,67,64,70,75,72,78,82,80,87,91,88,95,99],
+      signup_click:       [7,8,7,9,10,11,10,10,11,12,13,12,13,14,15,15,16,17,16,17,18,18,19,20,20,21,22,21,23,24],
+      signup_complete:    [2,2,2,3,3,3,3,3,3,4,4,4,4,4,5,4,5,5,5,5,6,5,6,6,6,7,7,6,7,8],
+      first_chat_sent:    [1,2,1,2,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4,4,4,4,5,5,5,5,5,5,6],
+      subscription_started:[0,0,0,1,0,1,0,1,0,1,1,0,1,0,1,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1],
+    },
+  },
+  traffic: [
+    { source: 'google',    medium: 'organic',     sessions: 712 },
+    { source: 'direct',    medium: '(none)',       sessions: 1104 },
+    { source: 'instagram', medium: 'paid_social',  sessions: 0 },
+    { source: 'linkedin',  medium: 'paid_social',  sessions: 19 },
+    { source: 'google',    medium: 'accounts',     sessions: 15 },
+  ],
+  gsc: { clicks: 189, impressions: 3214, ctr: 5.88, position: 5.4 },
+  pages: [
+    { page: '/chat',        views: 1311, duration: 193, bounce: 4.6 },
+    { page: '/',            views: 760,  duration: 87,  bounce: 21.2 },
+    { page: '/login',       views: 351,  duration: 62,  bounce: 18.4 },
+    { page: '/signup',      views: 179,  duration: 44,  bounce: 21.1 },
+    { page: '/billing',     views: 135,  duration: 210, bounce: 2.9 },
+    { page: '/onboarding',  views: 136,  duration: 98,  bounce: 8.3 },
+  ],
+  queries: [
+    { query: 'definable ai',          clicks: 100, impressions: 890,  position: 1.2 },
+    { query: 'definable',             clicks: 9,   impressions: 310,  position: 6.2 },
+    { query: 'agent teams',           clicks: 3,   impressions: 180,  position: 12.4 },
+    { query: 'claude code vs codex',  clicks: 2,   impressions: 95,   position: 21.0 },
+    { query: 'seedance 2.0 vs veo 3', clicks: 2,   impressions: 67,   position: 6.9 },
+  ],
+  utm: [
+    { source: 'instagram', campaign: 'launch_v1', sessions: 0 },
+    { source: 'linkedin',  campaign: 'organic',   sessions: 19 },
+  ],
+};
+
+// ============================================================
+// SPARKLINE RENDERER
+// ============================================================
+function renderSparkline(containerId, values, color) {
+  const container = document.getElementById(containerId);
+  if (!container || !values || values.length === 0) return;
+  const max = Math.max(...values, 1);
+  const W = 200, H = 36, pad = 2;
+  const pts = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (W - pad * 2);
+    const y = H - pad - ((v / max) * (H - pad * 2));
+    return `${x},${y}`;
+  }).join(' ');
+  const fill = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (W - pad * 2);
+    const y = H - pad - ((v / max) * (H - pad * 2));
+    return `${x},${y}`;
+  });
+  const fillPath = `M ${fill[0]} L ${pts.split(' ').slice(1).join(' L ')} L ${W - pad},${H} L ${pad},${H} Z`;
+  container.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="g${containerId}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${fillPath}" fill="url(#g${containerId})"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+// ============================================================
+// RENDER FUNCTIONS
+// ============================================================
+function renderFunnel(data) {
+  const f = data || DEMO.funnel;
+  const utm    = f.utm_captured || 0;
+  const sc     = f.signup_click || 0;
+  const scmpl  = f.signup_complete || 0;
+  const chat   = f.first_chat_sent || 0;
+  const sub    = f.subscription_started || 0;
+  const sp     = f.sparklines || DEMO.funnel.sparklines;
+
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v.toLocaleString(); };
+  const setConv = (id, num, den) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = den > 0 ? (num / den * 100).toFixed(1) + '% conv' : '— conv';
+  };
+
+  setVal('v-utm', utm);
+  setVal('v-signup-click', sc);
+  setVal('v-signup-complete', scmpl);
+  setVal('v-first-chat', chat);
+  setVal('v-subscription', sub);
+  setConv('conv-1', sc, utm);
+  setConv('conv-2', scmpl, sc);
+  setConv('conv-3', chat, scmpl);
+  setConv('conv-4', sub, chat);
+
+  const colors = { utm_captured: '#6b6b8a', signup_click: '#7c6bff',
+    signup_complete: '#ff6b9d', first_chat_sent: '#6bffb8', subscription_started: '#ffb86b' };
+  Object.entries(sp).forEach(([key, vals]) => {
+    const idMap = { utm_captured: 'sp-utm', signup_click: 'sp-signup-click',
+      signup_complete: 'sp-signup-complete', first_chat_sent: 'sp-first-chat',
+      subscription_started: 'sp-subscription' };
+    renderSparkline(idMap[key], vals, colors[key] || '#7c6bff');
+  });
+}
+
+function renderTraffic(rows) {
+  const container = document.getElementById('trafficBars');
+  if (!container) return;
+  const data = rows || DEMO.traffic;
+  const max = Math.max(...data.map(r => r.sessions), 1);
+  const sourceColors = { instagram: '#ff6b9d', linkedin: '#7c6bff', google: '#6bffb8',
+    direct: '#ffb86b', default: '#6b6b8a' };
+  container.innerHTML = data.map(r => {
+    const label = r.medium !== '(none)' && r.medium !== 'organic'
+      ? `${r.source} / ${r.medium}` : r.source;
+    const pct = Math.round((r.sessions / max) * 100);
+    const color = sourceColors[r.source] || sourceColors.default;
+    return `<div class="source-row">
+      <div class="source-label">${label}</div>
+      <div class="source-bar-wrap"><div class="source-bar" style="width:${pct}%;background:${color}"></div></div>
+      <div class="source-count">${r.sessions.toLocaleString()}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderGSCOverview(data) {
+  const container = document.getElementById('gscOverview');
+  if (!container) return;
+  const d = data || DEMO.gsc;
+  container.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Clicks</div><div style="font-size:24px;font-weight:700;color:var(--green)">${(d.clicks||0).toLocaleString()}</div></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Impressions</div><div style="font-size:24px;font-weight:700">${(d.impressions||0).toLocaleString()}</div></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Avg CTR</div><div style="font-size:24px;font-weight:700;color:var(--accent)">${(d.ctr||0).toFixed(1)}%</div></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Avg Position</div><div style="font-size:24px;font-weight:700;color:var(--yellow)">${(d.position||0).toFixed(1)}</div></div>
+    </div>`;
+}
+
+function renderPages(rows) {
+  const container = document.getElementById('topPages');
+  if (!container) return;
+  const data = rows || DEMO.pages;
+  container.innerHTML = `<table>
+    <tr><th>Page</th><th>Views</th><th>Avg Duration</th><th>Bounce</th></tr>
+    ${data.map(r => `<tr>
+      <td style="color:var(--text);font-family:monospace;font-size:11px">${r.page}</td>
+      <td>${(r.views||0).toLocaleString()}</td>
+      <td>${Math.round(r.duration||0)}s</td>
+      <td style="color:${(r.bounce||0) > 15 ? 'var(--yellow)' : 'var(--green)'}">${(r.bounce||0).toFixed(1)}%</td>
+    </tr>`).join('')}</table>`;
+}
+
+function renderQueries(rows) {
+  const container = document.getElementById('topQueries');
+  if (!container) return;
+  const data = rows || DEMO.queries;
+  container.innerHTML = `<table>
+    <tr><th>Query</th><th>Clicks</th><th>Impr</th><th>Pos</th></tr>
+    ${data.map(r => `<tr>
+      <td style="color:var(--text)">${r.query}</td>
+      <td>${(r.clicks||0).toLocaleString()}</td>
+      <td>${(r.impressions||0).toLocaleString()}</td>
+      <td>${(r.position||0).toFixed(1)}</td>
+    </tr>`).join('')}</table>`;
+}
+
+function renderUTM(rows) {
+  const container = document.getElementById('utmBreakdown');
+  if (!container) return;
+  const data = rows || DEMO.utm;
+  if (!data || data.length === 0) {
+    container.innerHTML = '<div class="alert info">&#8505; No paid social traffic yet. Launch your Instagram &amp; LinkedIn campaigns to see UTM data appear here.</div>';
+    return;
+  }
+  container.innerHTML = `<table>
+    <tr><th>Source</th><th>Campaign</th><th>Sessions</th></tr>
+    ${data.map(r => `<tr>
+      <td style="color:${r.source==='instagram'?'var(--accent2)':'var(--accent)'}">${r.source}</td>
+      <td style="color:var(--muted)">${r.campaign}</td>
+      <td>${(r.sessions||0).toLocaleString()}</td>
+    </tr>`).join('')}</table>`;
+}
+
+// ============================================================
+// DATA LOADING — calls Netlify functions
+// ============================================================
+async function fetchJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+function parseFunnelResponse(apiData) {
+  // Aggregate event counts from GA4 runReport response
+  const counts = {};
+  const sparkRaw = {};
+  if (apiData && apiData.rows) {
+    for (const row of apiData.rows) {
+      const date  = row.dimensionValues[0].value;
+      const event = row.dimensionValues[1].value;
+      const count = parseInt(row.metricValues[0].value, 10) || 0;
+      counts[event] = (counts[event] || 0) + count;
+      if (!sparkRaw[event]) sparkRaw[event] = {};
+      sparkRaw[event][date] = (sparkRaw[event][date] || 0) + count;
+    }
+  }
+  // Build sorted sparkline arrays
+  const sparklines = {};
+  for (const [event, byDate] of Object.entries(sparkRaw)) {
+    sparklines[event] = Object.keys(byDate).sort().map(d => byDate[d]);
+  }
+  return { ...counts, sparklines };
+}
+
+async function loadAll() {
+  document.getElementById('lastUpdated').textContent = 'Refreshing…';
+  let usingDemo = false;
+
+  try {
+    // Try GA4 funnel
+    const ga4Funnel = await fetchJSON(API.ga4('funnel'));
+    if (ga4Funnel.ok) {
+      renderFunnel(parseFunnelResponse(ga4Funnel.data));
+    } else { renderFunnel(null); usingDemo = true; }
+  } catch { renderFunnel(null); usingDemo = true; }
+
+  try {
+    // Try GA4 traffic
+    const ga4Traffic = await fetchJSON(API.ga4('traffic'));
+    if (ga4Traffic.ok && ga4Traffic.data && ga4Traffic.data.rows) {
+      const rows = ga4Traffic.data.rows.map(r => ({
+        source: r.dimensionValues[0].value,
+        medium: r.dimensionValues[1].value,
+        sessions: parseInt(r.metricValues[0].value, 10) || 0,
+      }));
+      renderTraffic(rows);
+    } else { renderTraffic(null); }
+  } catch { renderTraffic(null); }
+
+  try {
+    // Try GSC overview
+    const gsc = await fetchJSON(API.gsc('overview'));
+    if (gsc.ok && gsc.data) {
+      const d = gsc.data;
+      renderGSCOverview({
+        clicks: d.clicks, impressions: d.impressions,
+        ctr: (d.ctr || 0) * 100, position: d.position,
+      });
+    } else { renderGSCOverview(null); }
+  } catch { renderGSCOverview(null); }
+
+  try {
+    // Try GA4 top pages
+    const ga4Pages = await fetchJSON(API.ga4('engagement'));
+    if (ga4Pages.ok && ga4Pages.data && ga4Pages.data.rows) {
+      const rows = ga4Pages.data.rows.map(r => ({
+        page: r.dimensionValues[0].value,
+        views: parseInt(r.metricValues[0].value, 10) || 0,
+        duration: parseFloat(r.metricValues[1].value) || 0,
+        bounce: (parseFloat(r.metricValues[2].value) || 0) * 100,
+      }));
+      renderPages(rows);
+    } else { renderPages(null); }
+  } catch { renderPages(null); }
+
+  try {
+    // Try GSC queries
+    const gscQ = await fetchJSON(API.gsc('queries'));
+    if (gscQ.ok && gscQ.data && gscQ.data.rows) {
+      const rows = gscQ.data.rows.map(r => ({
+        query: r.keys[0], clicks: r.clicks,
+        impressions: r.impressions, position: r.position,
+      }));
+      renderQueries(rows);
+    } else { renderQueries(null); }
+  } catch { renderQueries(null); }
+
+  try {
+    // Try GA4 UTM paid breakdown
+    const ga4utm = await fetchJSON(API.ga4('utm'));
+    if (ga4utm.ok && ga4utm.data && ga4utm.data.rows) {
+      const rows = ga4utm.data.rows.map(r => ({
+        source: r.dimensionValues[0].value,
+        campaign: r.dimensionValues[1].value,
+        sessions: parseInt(r.metricValues[0].value, 10) || 0,
+      }));
+      renderUTM(rows);
+    } else { renderUTM(null); }
+  } catch { renderUTM(null); }
+
+  if (usingDemo) {
+    document.getElementById('setupAlert').classList.remove('hidden');
+  } else {
+    document.getElementById('setupAlert').classList.add('hidden');
+  }
+
+  const now = new Date();
+  document.getElementById('lastUpdated').textContent =
+    `Live data · Updated ${now.toLocaleTimeString()}`;
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+loadAll();
+setInterval(loadAll, REFRESH_INTERVAL_MS);
+</script>
+
+</body>
+</html>

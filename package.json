@@ -1,0 +1,19 @@
+{
+  "name": "definable-campaign-dashboard",
+  "version": "1.0.0",
+  "description": "Live campaign analytics dashboard — GA4 + GSC + UTM funnel",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'Static site — no build step required'"
+  },
+  "dependencies": {
+    "@google-analytics/data": "^4.7.0",
+    "googleapis": "^144.0.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
